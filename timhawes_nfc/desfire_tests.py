@@ -1,7 +1,6 @@
+# SPDX-FileCopyrightText: 2021 Tim Hawes
 #
-# Copyright 2021 Tim Hawes
-# All Rights Reserved
-#
+# SPDX-License-Identifier: CC0-1.0
 
 import aesio
 from binascii import unhexlify

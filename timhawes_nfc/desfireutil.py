@@ -1,7 +1,6 @@
+# SPDX-FileCopyrightText: 2021 Tim Hawes
 #
-# Copyright 2021 Tim Hawes
-# All Rights Reserved
-#
+# SPDX-License-Identifier: GPL-3.0-or-later
 
 import aesio
 import desio

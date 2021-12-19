@@ -1,9 +1,8 @@
+# SPDX-FileCopyrightText: 2021 Tim Hawes
 #
-# Copyright 2021 Tim Hawes
-# All Rights Reserved
-#
-# Based on specifications in https://csrc.nist.gov/publications/detail/sp/800-73/4/final
-#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+# PIV specifications: https://csrc.nist.gov/publications/detail/sp/800-73/4/final
 
 import asn1
 
