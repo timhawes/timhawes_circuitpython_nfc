@@ -114,7 +114,51 @@ class BaseCard:
 
     def dump(self):
         for k in sorted(self.data.keys()):
-            print(k, self.data[k])
+            if isinstance(self.data[k], bytes):
+                print(k, binascii.hexlify(self.data[k]).decode("ascii"))
+            else:
+                print(k, self.data[k])
+        if "ats" in self.data:
+            ats = self.data["ats"]
+            if len(ats) == 0:
+                print("ATS is zero length")
+            elif ats[0] != len(ats):
+                print("ATS length is incorrect")
+            elif ats[0] == 1:
+                print("ATS is empty")
+            else:
+                print("ATS", end="")
+                t0 = ats[1]
+                print(f" T0={t0:02X}", end="")
+                fsci = t0 & 0x0F
+                ta_present = t0 & 0b00010000
+                tb_present = t0 & 0b00100000
+                tc_present = t0 & 0b01000000
+                position = 2
+                ta = None
+                tb = None
+                tc = None
+                if ta_present:
+                    ta = ats[position]
+                    position = position + 1
+                    print(f" TA={ta:02X}", end="")
+                if tb_present:
+                    tb = ats[position]
+                    position = position + 1
+                    print(f" TB={tb:02X}", end="")
+                if tc_present:
+                    tc = ats[position]
+                    position = position + 1
+                    print(f" TC={tc:02X}", end="")
+                historical_bytes = ats[position:]
+                if len(historical_bytes) > 0:
+                    print(
+                        " historical={}".format(
+                            binascii.hexlify(historical_bytes).decode("ascii")
+                        ),
+                        end="",
+                    )
+                print()
 
     def communicatethru(self, data: bytes, response_length=64) -> bytes:
         return NotImplementedError
