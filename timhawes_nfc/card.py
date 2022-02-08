@@ -170,6 +170,12 @@ class BaseCard:
         return NotImplementedError
 
     @property
+    def has_random_uid(self) -> bool:
+        if len(self.uid) == 4 and self.uid[0] == 0x80:
+            return True
+        return False
+
+    @property
     def is_iso14443_3(self):
         return NotImplementedError
 
