@@ -133,6 +133,24 @@ class BaseCard:
     def is_iso14443_4(self):
         return NotImplementedError
 
+    @property
+    def historical_bytes(self):
+        try:
+            ats = self.data["ats"]
+            t0 = ats[1]
+            position = 2
+            if t0 & 0b00010000:
+                position = position + 1
+            if t0 & 0b00100000:
+                position = position + 1
+            if t0 & 0b01000000:
+                position = position + 1
+            return ats[position:]
+        except KeyError:
+            pass
+        except IndexError:
+            pass
+
     def get_version(self):
         if self.is_iso14443_3:
             return self.communicatethru([0x60])
