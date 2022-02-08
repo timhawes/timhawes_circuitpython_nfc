@@ -10,24 +10,11 @@ from .card import nfc_tlv_parse
 class NtagMixin:
     @property
     def ntag_version(self):
-        if "ntag_version" in self.data:
-            return self.data["ntag_version"]
-        response = self.communicatethru([0x60], response_length=8)
-        if response:
-            self.data["ntag_version"] = response
-            return self.data["ntag_version"]
+        return self.version
 
     @property
     def ntag_model(self):
-        if "ntag_model" in self.data:
-            return self.data["ntag_model"]
-        version_map = {
-            b"\x00\x04\x04\x02\x01\x00\x0F\x03": "NTAG213",
-            b"\x00\x04\x04\x02\x01\x00\x11\x03": "NTAG215",
-            b"\x00\x04\x04\x02\x01\x00\x13\x03": "NTAG216",
-        }
-        if self.ntag_version:
-            return version_map.get(self.ntag_version)
+        return self.model
 
     @property
     def ntag_signature(self):

@@ -31,6 +31,40 @@ class APDUError(CardError):
         )
 
 
+#
+# 00 - vendor
+# 01 - product type
+# 02 - subtype
+# 03 - major product version
+# 04 - minor product version
+# 05 - storage size
+# 06 - protocol type (03 = ISO 14443-3, 04 = ISO 14443-4, 05 = 3+4)
+#
+VERSIONS = {
+    b"\x04\x01\x01\x01\x00\x16\x05": "MIFARE DESFire EV1 MF3ICD21",
+    b"\x04\x01\x01\x01\x00\x18\x05": "MIFARE DESFire EV1 MF3ICD41",
+    b"\x04\x01\x01\x01\x00\x1A\x05": "MIFARE DESFire EV1 MF3ICD81",
+    b"\x04\x01\x02\x01\x00\x16\x05": "MIFARE DESFire EV1 MF3ICDH21",
+    b"\x04\x01\x02\x01\x00\x18\x05": "MIFARE DESFire EV1 MF3ICDH41",
+    b"\x04\x01\x02\x01\x00\x1A\x05": "MIFARE DESFire EV1 MF3ICDH81",
+    b"\x04\x03\x01\x01\x00\x0b\x03": "MIFARE Ultralight EV1 MF0UL11",
+    b"\x04\x03\x01\x01\x00\x0e\x03": "MIFARE Ultralight EV1 MF0UL21",
+    b"\x04\x03\x02\x01\x00\x0b\x03": "MIFARE Ultralight EV1 MF0ULH11",
+    b"\x04\x03\x02\x01\x00\x0e\x03": "MIFARE Ultralight EV1 MF0ULH21",
+    b"\x04\x04\x02\x01\x00\x0F\x03": "NTAG213",
+    b"\x04\x04\x02\x01\x00\x11\x03": "NTAG215",
+    b"\x04\x04\x02\x01\x00\x13\x03": "NTAG216",
+    b"\x04\x04\x02\x30\x00\x11\x05": "NTAG 424 DNA NT4H2421Gx",
+    b"\x04\x04\x04\x01\x00\x0F\x03": "NTAG213F",
+    b"\x04\x04\x04\x01\x00\x11\x03": "NTAG215F",
+    b"\x04\x04\x04\x01\x00\x13\x03": "NTAG216F",
+    b"\x04\x08\x01\x30\x00\x13\x05": "MIFARE DESFire Light MF2DLx0",
+    b"\x04\x08\x01\x30\x00\x13\x05": "MIFARE DESFire Light MF2DLx0",
+    b"\x04\x08\x02\x30\x00\x13\x05": "MIFARE DESFire Light MF2DLHx0",
+    b"\x04\x08\x02\x30\x00\x13\x05": "MIFARE DESFire Light MF2DLHx0",
+}
+
+
 def nfc_tlv_parse(data):
     # pylint: disable=invalid-name
     while len(data) > 0:
@@ -98,6 +132,37 @@ class BaseCard:
     @property
     def is_iso14443_4(self):
         return NotImplementedError
+
+    def get_version(self):
+        if self.is_iso14443_3:
+            return self.communicatethru([0x60])
+        elif self.is_iso14443_4:
+            version, sw1, sw2 = self.apdu(0x90, 0x60, 0x00, 0x00)
+            while sw1 == 0x91 and sw2 == 0xAF:
+                version2, sw1, sw2 = self.apdu(0x90, 0xAF, 0x00, 0x00)
+                version = version + version2
+            return version
+
+    @property
+    def version(self):
+        if "version" in self.data:
+            return self.data["version"]
+        try:
+            self.data["version"] = self.get_version()
+            return self.data["version"]
+        except CardError:
+            return None
+
+    @property
+    def model(self):
+        if len(self.uid) > 4:
+            if self.uid[0:2] == b"\x02\xE2":
+                return "ST25TA02K"
+        if self.version:
+            if len(self.version) == 8 and self.version[0] == 0x00:
+                return VERSIONS.get(self.version[1:8])
+            return VERSIONS.get(self.version[0:7])
+        return None
 
 
 class SimpleCard(BaseCard):

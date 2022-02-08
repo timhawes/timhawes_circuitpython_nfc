@@ -22,6 +22,34 @@ from .desfireutil import (
     xor_bytes,
 )
 
+#
+# 00 - vendor ID (04 is NXP)
+# 01 - product type (01 assumed to EV1)
+# 02 - subtype (01 assumed to be 17pF, 02 assumed to be 70pF)
+# 03 - major product version (NXP 01 = EV1)
+# 04 - minor product version
+# 05 - storage size (16 = 2k, 18 = 4k)
+# 06 - protocol type (03 = ISO 14443-3, 04 = ISO 14443-4, 05 = 3+4)
+#
+NXP_VERSION_DATA = {
+    b"\x04\x01\x01\x01\x00\x16\x05": "MIFARE DESFire EV1 MF3ICD21",
+    b"\x04\x01\x01\x01\x00\x18\x05": "MIFARE DESFire EV1 MF3ICD41",
+    b"\x04\x01\x01\x01\x00\x1A\x05": "MIFARE DESFire EV1 MF3ICD81",
+    b"\x04\x01\x02\x01\x00\x16\x05": "MIFARE DESFire EV1 MF3ICDH21",
+    b"\x04\x01\x02\x01\x00\x18\x05": "MIFARE DESFire EV1 MF3ICDH41",
+    b"\x04\x01\x02\x01\x00\x1A\x05": "MIFARE DESFire EV1 MF3ICDH81",
+    b"\x04\x08\x01\x30\x00\x13\x05": "MIFARE DESFire Light MF2DL10",
+    b"\x04\x08\x01\x30\x00\x13\x05": "MIFARE DESFire Light MF2DL10",
+    b"\x04\x08\x02\x30\x00\x13\x05": "MIFARE DESFire Light MF2DLH10",
+    b"\x04\x08\x02\x30\x00\x13\x05": "MIFARE DESFire Light MF2DLH10",
+}
+
+
+def desfire_model_lookup(version):
+    if version:
+        return NXP_VERSION_DATA.get(version[0:7])
+    return None
+
 
 class EV1Error(CardError):
     pass
@@ -401,7 +429,7 @@ class EV1Card(FancyCard):
             else:
                 print("get_card_uid -> bad crc")
 
-    def get_version(self):
+    def ev1_get_version(self):
         version = {}
         status, response = self.ev1_command(0x60, rx_cmac=True)
         if status == 0x00:
