@@ -167,7 +167,9 @@ class EV1Card(FancyCard):
         debug=True,
     ):
         if debug:
-            print("EV1 send {:02X}{}".format(cmd, binascii.hexlify(data).decode("ascii")))
+            print(
+                "EV1 send {:02X}{}".format(cmd, binascii.hexlify(data).decode("ascii"))
+            )
 
         if send_crc:
             data += desfire_crc32(bytes([cmd]) + data)
@@ -178,7 +180,8 @@ class EV1Card(FancyCard):
                 if debug:
                     print(
                         "EV1 cmac: {} -> {}".format(
-                            binascii.hexlify(bytes([cmd]) + data), binascii.hexlify(cmac_bytes)
+                            binascii.hexlify(bytes([cmd]) + data),
+                            binascii.hexlify(cmac_bytes),
                         )
                     )
                 if send_cmac:
@@ -204,7 +207,9 @@ class EV1Card(FancyCard):
                 if debug:
                     print(
                         "EV1 encrypted packet will be: cmd={:02x} plain={} crypted={}".format(
-                            cmd, binascii.hexlify(data[0:send_encrypted]), binascii.hexlify(ciphertext)
+                            cmd,
+                            binascii.hexlify(data[0:send_encrypted]),
+                            binascii.hexlify(ciphertext),
                         )
                     )
                 data = data[0:send_encrypted] + ciphertext
@@ -214,7 +219,11 @@ class EV1Card(FancyCard):
         if status not in [0x00, 0x0C, 0xAF, 0xF0]:
             self.reset_authentication()
             print(repr(status))
-            print("EV1 status {:02X}={}".format(status, DESFIRE_STATUS_CODES.get(status, "")))
+            print(
+                "EV1 status {:02X}={}".format(
+                    status, DESFIRE_STATUS_CODES.get(status, "")
+                )
+            )
 
         while status == 0xAF:
             status, response_af = self.ev1_raw_command(0xAF)
@@ -237,7 +246,8 @@ class EV1Card(FancyCard):
                     if debug:
                         print(
                             "EV1 cmac split: {} {}".format(
-                                binascii.hexlify(data_chunk), binascii.hexlify(cmac_chunk)
+                                binascii.hexlify(data_chunk),
+                                binascii.hexlify(cmac_chunk),
                             )
                         )
                     calculated_cmac = self.cmac(data_chunk)
@@ -254,7 +264,11 @@ class EV1Card(FancyCard):
                     response = response[0 : len(response) - 8]
 
         if debug:
-            print("EV1 recv {:02X}{}".format(status, binascii.hexlify(response).decode("ascii")))
+            print(
+                "EV1 recv {:02X}{}".format(
+                    status, binascii.hexlify(response).decode("ascii")
+                )
+            )
         return status, response
 
     def ev1_authenticate_aes(self, key_id, key_data, debug=False):
@@ -411,7 +425,11 @@ class EV1Card(FancyCard):
 
     def ev1_get_application_ids(self):
         status, response = self.ev1_command(0x6A, rx_cmac=True, debug=True)
-        print("get_application_ids -> 0x{:02X} {}".format(status, binascii.hexlify(response)))
+        print(
+            "get_application_ids -> 0x{:02X} {}".format(
+                status, binascii.hexlify(response)
+            )
+        )
         if status == 0x00:
             return [
                 int.from_bytes(response[i : i + 3], "big")

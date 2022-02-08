@@ -8,6 +8,7 @@ import traceback
 from .card import SimpleCard, CardError
 from .desfire import EV1Card
 from .pn532_reader import PN532Mixin
+
 # from .piv import PivMixin
 
 
@@ -63,6 +64,7 @@ class NFCSimpleScanner(NFCBaseScanner):
             print("PN532 exception:", e)
             return None
 
+
 class NFCFancyScanner(NFCSimpleScanner):
     def poll(self):
         try:
@@ -81,6 +83,7 @@ class NFCFancyScanner(NFCSimpleScanner):
         except RuntimeError as e:
             print("PN532 exception:", e)
             return None
+
 
 class NFCDesfireScanner(NFCBaseScanner):
     def __init__(self, *args, authenticator=None, **kwargs):
@@ -127,7 +130,7 @@ class NFCDesfireScanner(NFCBaseScanner):
 
             # x = card.piv_get_certificate()
             # if x:
-            #     print("piv-9e", len(x), x)  
+            #     print("piv-9e", len(x), x)
             # else:
             #     print("piv-9e None")
 

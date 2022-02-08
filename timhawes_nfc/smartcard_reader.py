@@ -10,7 +10,6 @@ from . import desfire
 
 
 class SmartcardMixin:
-
     @classmethod
     def from_pyscard_connection(cls, connection, debug=False):
         card = cls()
@@ -27,7 +26,7 @@ class SmartcardMixin:
     #     super(__class__, self).__init__(*args, **kwargs)
 
     def _pyscard_get_uid(self):
-        response, sw1, sw2 = self.connection.transmit([0xFF,0xCA,0x00,0x00,0x04])
+        response, sw1, sw2 = self.connection.transmit([0xFF, 0xCA, 0x00, 0x00, 0x04])
         if sw1 == 0x90 and sw2 == 0x00:
             return bytes(response)
 
@@ -35,7 +34,7 @@ class SmartcardMixin:
         return bytes(self.connection.getATR())
 
     def _pyscard_get_ats(self):
-        response, sw1, sw2 = self.connection.transmit([0xFF,0xCA,0x01,0x00,0x04])
+        response, sw1, sw2 = self.connection.transmit([0xFF, 0xCA, 0x01, 0x00, 0x04])
         if sw1 == 0x90 and sw2 == 0x00:
             return bytes(response)
 
@@ -60,13 +59,21 @@ class SmartcardMixin:
             print("APDU-C {}".format(binascii.hexlify(bytes(data))))
         response, sw1, sw2 = self.connection.transmit(list(data))
         if self.debug:
-            print("APDU-R {} {:02X}{:02X}".format(binascii.hexlify(bytes(response)), sw1, sw2))
+            print(
+                "APDU-R {} {:02X}{:02X}".format(
+                    binascii.hexlify(bytes(response)), sw1, sw2
+                )
+            )
         while sw1 == 0x61:
             if self.debug:
                 print("APDU-C {}".format(binascii.hexlify(bytes(GET_RESPONSE + [sw2]))))
             data, sw1, sw2 = self.connection.transmit(GET_RESPONSE + [sw2])
             if self.debug:
-                print("APDU-R {} {:02X}{:02X}".format(binascii.hexlify(bytes(data)), sw1, sw2))
+                print(
+                    "APDU-R {} {:02X}{:02X}".format(
+                        binascii.hexlify(bytes(data)), sw1, sw2
+                    )
+                )
             response = response + data
         if sw1 not in [0x90, 0x91]:
             if raise_exceptions:
@@ -77,7 +84,7 @@ class SmartcardMixin:
         # This is DESFire ISO 7816-4 APDU wrapping
         # It probably won't work as a general solution for other cards
         if len(data) > 1:
-            apdu = [0x90, data[0], 0x00, 0x00, len(data)-1] + list(data[1:]) + [0x00]
+            apdu = [0x90, data[0], 0x00, 0x00, len(data) - 1] + list(data[1:]) + [0x00]
         else:
             apdu = [0x90, data[0], 0x00, 0x00, 0x00]
         response, sw1, sw2 = self.apdu(apdu, raise_exceptions=False)
@@ -88,7 +95,13 @@ class SmartcardMixin:
     def communicatethru(self, data, response_length=64):
         apdu = [0xFF, 0x00, 0x00, 0x00, len(data) + 2, 0xD4, 0x42] + list(data)
         response, sw1, sw2 = self.apdu(apdu)
-        if sw1 == 0x90 and sw2 == 0x00 and response[0] == 0xD5 and response[1] == 0x43 and response[2] == 0x00:
+        if (
+            sw1 == 0x90
+            and sw2 == 0x00
+            and response[0] == 0xD5
+            and response[1] == 0x43
+            and response[2] == 0x00
+        ):
             return response[3:]
 
     def mifare_read_blocks(self, block, length=16):

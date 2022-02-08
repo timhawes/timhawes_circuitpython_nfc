@@ -13,20 +13,21 @@ from .iso import IsoMixin
 PIV_AID = b"\xA0\x00\x00\x03\x08\x00\x00\x10\x00"
 SELECT = b"\x00\xA4\x04\x00"
 GET_DATA = b"\x00\xCB\x3F\xFF"
-PIV_CHUID = b"\x5F\xC1\x02" # Card Holder Unique Identifier
-CERTIFICATE_9A = b"\x5F\xC1\x05" # X.509 Certificate for PIV Authentication
-CERTIFICATE_9C = b"\x5F\xC1\x0A" # X.509 Certificate for Digital Signature
-CERTIFICATE_9D = b"\x5F\xC1\x0B" # X.509 Certificate for Key Management
-CERTIFICATE_9E = b"\x5F\xC1\x01" # X.509 Certificate for Card Authentication
+PIV_CHUID = b"\x5F\xC1\x02"  # Card Holder Unique Identifier
+CERTIFICATE_9A = b"\x5F\xC1\x05"  # X.509 Certificate for PIV Authentication
+CERTIFICATE_9C = b"\x5F\xC1\x0A"  # X.509 Certificate for Digital Signature
+CERTIFICATE_9D = b"\x5F\xC1\x0B"  # X.509 Certificate for Key Management
+CERTIFICATE_9E = b"\x5F\xC1\x01"  # X.509 Certificate for Card Authentication
 
 
 class PivMixin(IsoMixin):
-
     def piv_select(self):
         self.iso_select_df(PIV_AID)
 
     def piv_get_data(self, data_field):
-        apdu = GET_DATA + bytes([len(data_field)+2, 0x5C, len(data_field)]) + data_field
+        apdu = (
+            GET_DATA + bytes([len(data_field) + 2, 0x5C, len(data_field)]) + data_field
+        )
         response, sw1, sw2 = self.apdu(apdu, response_length=250)
         return response
 
@@ -54,7 +55,9 @@ class PivMixin(IsoMixin):
             raise e
 
     def piv_general_authenticate(self, algo, slot, data):
-        apdu = b"\x00\x87" + bytes([algo, slot, len(data)]) + bytes(data) + bytes([0x00])
+        apdu = (
+            b"\x00\x87" + bytes([algo, slot, len(data)]) + bytes(data) + bytes([0x00])
+        )
         return self.apdu(apdu)
 
     def piv_sign(self, nonce, algo=0x14, slot=0x9E):
@@ -73,7 +76,9 @@ class PivMixin(IsoMixin):
         self.iso_select_df(PIV_AID)
         challenge = [0x82, 0x00, 0x81, len(nonce)] + list(nonce)
         dynamic_auth_template = [0x7C, len(challenge)] + challenge
-        response, sw1, sw2 = self.piv_general_authenticate(algo, slot, dynamic_auth_template)
+        response, sw1, sw2 = self.piv_general_authenticate(
+            algo, slot, dynamic_auth_template
+        )
 
         decoder = asn1.Decoder()
         decoder.start(response)
@@ -86,8 +91,8 @@ class PivMixin(IsoMixin):
                 decoder = asn1.Decoder()
                 decoder.start(value)
                 decoder.enter()
-                tag1, value1 = decoder.read() # r
-                tag2, value2 = decoder.read() # s
+                tag1, value1 = decoder.read()  # r
+                tag2, value2 = decoder.read()  # s
                 if algo == 0x11:
                     # P-256
                     return value1.to_bytes(32, "big") + value2.to_bytes(32, "big")

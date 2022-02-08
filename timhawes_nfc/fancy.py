@@ -5,11 +5,11 @@
 from .card import SimpleCard, APDUError, nfc_tlv_parse
 from .ntag import NtagMixin
 from .iso import IsoMixin
-#from .piv import PivMixin
+
+# from .piv import PivMixin
 
 
 class FancyCard(NtagMixin, IsoMixin, SimpleCard):
-
     def read_block(self, block: int) -> bytes:
         """Read 16 bytes starting at the given block."""
         print("fetching block", block)
@@ -58,7 +58,7 @@ class FancyCard(NtagMixin, IsoMixin, SimpleCard):
         try:
             # Select NFC application
             self.iso_select_df(b"\xD2\x76\x00\x00\x85\x01\x01")
-            # Select CC file
+            # Select CC file
             response, sw1, sw2 = self.apdu(b"\x00\xA4\x00\x0C\x02\xE1\x03")
             # ReadBinary
             cc, sw1, sw2 = self.apdu(b"\x00\xB0\x00\x00\x0F")
@@ -84,7 +84,9 @@ class FancyCard(NtagMixin, IsoMixin, SimpleCard):
             ndef_length = int.from_bytes(response[0:2], "big")
             # ReadBinary, payload
             # FIXME: check sizes and download larger messages
-            response, sw1, sw2 = self.apdu(b"\x00\xB0\x00\x02" + response[1:2], response_length=ndef_length+2)
+            response, sw1, sw2 = self.apdu(
+                b"\x00\xB0\x00\x02" + response[1:2], response_length=ndef_length + 2
+            )
             return response
         except APDUError as e:
             if e.sw1 == 0x6A and e.sw2 == 0x82:

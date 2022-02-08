@@ -22,7 +22,9 @@ class APDUError(CardError):
         return "SW1={:02X} SW2={:02X}".format(self.sw1, self.sw2)
 
     def __repr__(self):
-        return "{}: SW1={:02X} SW2={:02X}".format(self.__class__.__name__, self.sw1, self.sw2)
+        return "{}: SW1={:02X} SW2={:02X}".format(
+            self.__class__.__name__, self.sw1, self.sw2
+        )
 
 
 def nfc_tlv_parse(data):
@@ -36,17 +38,17 @@ def nfc_tlv_parse(data):
             return
         if data[1] == 0xFF:
             l = int.from_bytes(data[2:4], "big")
-            v = data[4:4+l]
+            v = data[4 : 4 + l]
             if len(v) == l:
-                data = data[4+l:]
+                data = data[4 + l :]
                 yield t, l, v
             else:
                 raise ValueError
         else:
             l = data[1]
-            v = data[2:2+l]
+            v = data[2 : 2 + l]
             if len(v) == l:
-                data = data[2+l:]
+                data = data[2 + l :]
                 yield t, l, v
             else:
                 raise ValueError("NDEF was not terminated")

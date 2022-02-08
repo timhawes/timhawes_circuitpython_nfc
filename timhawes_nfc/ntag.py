@@ -8,7 +8,6 @@ from .card import nfc_tlv_parse
 
 
 class NtagMixin:
-    
     @property
     def ntag_version(self):
         if "ntag_version" in self.data:
@@ -99,7 +98,7 @@ class NtagMixin:
             terminated = False
             # print(data)
             for t, l, v in nfc_tlv_parse(data):
-                #print("tlv", t, l, v)
+                # print("tlv", t, l, v)
                 if t == 0xFE:
                     terminated = True
                     break
@@ -108,5 +107,3 @@ class NtagMixin:
             if not terminated:
                 print("missing data")
             return messages
-
-
