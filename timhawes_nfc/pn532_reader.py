@@ -123,9 +123,9 @@ class PN532Mixin:
         else:
             raise PN532Error("APDU error, no response")
 
-    # @property
-    # def is_iso14443_3(self) -> bool:
-    #     return not self.is_iso14443_4
+    @property
+    def is_iso14443_3(self) -> bool:
+        return bool((self.data["sak"] & 0b00100100) == 0b00000000)
 
     @property
     def is_iso14443_4(self) -> bool:
