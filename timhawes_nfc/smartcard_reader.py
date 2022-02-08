@@ -53,31 +53,50 @@ class SmartcardMixin:
         else:
             return False
 
-    def apdu(self, data, response_length=64, raise_exceptions=True):
+    def apdu(
+        self, cla, ins, p1, p2, data=b"", response_length=None, raise_exceptions=True
+    ):
         GET_RESPONSE = [0x00, 0xC0, 0x00, 0x00]
+        if len(data) > 0:
+            command = bytes([cla, ins, p1, p2, len(data)]) + data
+        else:
+            command = bytes([cla, ins, p1, p2])
+        if response_length is None or response_length == 256:
+            command = command + b"\x00"
+        elif response_length > 256:
+            raise NotImplementedError("Cannot handle response length >256 bytes")
+        elif response_length > 0:
+            command = command + bytes([response_length])
+        # else: 0 encoded as absent field
         if self.debug:
-            print("APDU-C {}".format(binascii.hexlify(bytes(data))))
-        response, sw1, sw2 = self.connection.transmit(list(data))
+            print("APDU-C {}".format(binascii.hexlify(bytes(command)).decode("ascii")))
+        response, sw1, sw2 = self.connection.transmit(list(command))
         if self.debug:
             print(
-                "APDU-R {} {:02X}{:02X}".format(
-                    binascii.hexlify(bytes(response)), sw1, sw2
+                "APDU-R {} {:02x}{:02x}".format(
+                    binascii.hexlify(bytes(response)).decode("ascii") or "-", sw1, sw2
                 )
             )
         while sw1 == 0x61:
             if self.debug:
-                print("APDU-C {}".format(binascii.hexlify(bytes(GET_RESPONSE + [sw2]))))
+                print(
+                    "APDU-C {}".format(
+                        binascii.hexlify(bytes(GET_RESPONSE + [sw2]).decode("ascii"))
+                    )
+                )
             data, sw1, sw2 = self.connection.transmit(GET_RESPONSE + [sw2])
             if self.debug:
                 print(
-                    "APDU-R {} {:02X}{:02X}".format(
-                        binascii.hexlify(bytes(data)), sw1, sw2
+                    "APDU-R {} {:02x}{:02x}".format(
+                        binascii.hexlify(bytes(data)).decode("ascii") or "-", sw1, sw2
                     )
                 )
             response = response + data
         if sw1 not in [0x90, 0x91]:
             if raise_exceptions:
-                raise card.APDUError(sw1, sw2)
+                raise card.APDUError(
+                    sw1, sw2, command=bytes(command), response=bytes(response)
+                )
         return bytes(response), sw1, sw2
 
     def dataexchange(self, data, response_length=64):

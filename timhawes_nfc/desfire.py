@@ -129,11 +129,7 @@ class EV1Card(FancyCard):
         )
 
     def ev1_raw_command(self, cmd, data=b""):
-        if len(data) > 0:
-            apdu = [0x90, cmd, 0x00, 0x00, len(data)] + list(data) + [0x00]
-        else:
-            apdu = [0x90, cmd, 0x00, 0x00, 0x00]
-        response, sw1, sw2 = self.apdu(apdu)
+        response, sw1, sw2 = self.apdu(0x90, cmd, 0x00, 0x00, data)
         if sw1 == 0x91:
             return sw2, response
         else:

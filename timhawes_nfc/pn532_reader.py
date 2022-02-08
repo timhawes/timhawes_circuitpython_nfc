@@ -78,8 +78,27 @@ class PN532Mixin:
             0x40, params=[1] + list(data), response_length=response_length
         )
 
-    def apdu(self, data, response_length=64, raise_exceptions=True):
-        response = self.dataexchange(data, response_length=response_length)
+    def apdu(
+        self, cla, ins, p1, p2, data=b"", response_length=None, raise_exceptions=True
+    ):
+        if len(data) > 255:
+            raise NotImplementedError("Cannot handle command data length >255 bytes")
+        elif len(data) > 0:
+            command = bytes([cla, ins, p1, p2, len(data)]) + data
+            # command = bytes(command) + bytes([len(data)]) + data
+        else:
+            command = bytes([cla, ins, p1, p2])
+            # command = bytes(command)
+        if response_length is None or response_length == 256:
+            command = command + b"\x00"
+        elif response_length > 256:
+            raise NotImplementedError("Cannot handle response length >256 bytes")
+        elif response_length > 0:
+            command = command + bytes([response_length])
+        # else: 0 encoded as absent field
+        if self.debug:
+            print("APDU-C {}".format(binascii.hexlify(bytes(command)).decode("ascii")))
+        response = self.dataexchange(command, response_length=200)
         if response:
             output = response[0:-2]
             while response[-2] == 0x61:
@@ -94,7 +113,12 @@ class PN532Mixin:
                 output = output + response[0:-2]
             if response[-2] not in [0x90, 0x91]:
                 if raise_exceptions:
-                    raise APDUError(response[-2], response[-1])
+                    raise APDUError(
+                        response[-2],
+                        response[-1],
+                        command=bytes(command),
+                        response=bytes(response[:-2]),
+                    )
             return output, response[-2], response[-1]
         else:
             raise PN532Error("APDU error, no response")

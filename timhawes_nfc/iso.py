@@ -5,5 +5,4 @@
 
 class IsoMixin:
     def iso_select_df(self, aid):
-        apdu = b"\x00\xA4\x04\x00" + bytes([len(aid)]) + aid
-        self.apdu(apdu)
+        self.apdu(0x00, 0xA4, 0x04, 0x00, aid)

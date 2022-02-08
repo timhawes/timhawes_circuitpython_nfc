@@ -14,16 +14,20 @@ class CardError(NFCError):
 
 
 class APDUError(CardError):
-    def __init__(self, sw1, sw2):
+    def __init__(self, sw1, sw2, command=b"", response=b""):
         self.sw1 = sw1
         self.sw2 = sw2
+        self.command = command
+        self.response = response
 
     def __str__(self):
-        return "SW1={:02X} SW2={:02X}".format(self.sw1, self.sw2)
+        return "SW1={:02X} SW2={:02X} COMMAND={} RESPONSE={}".format(
+            self.sw1, self.sw2, self.command, self.response
+        )
 
     def __repr__(self):
-        return "{}: SW1={:02X} SW2={:02X}".format(
-            self.__class__.__name__, self.sw1, self.sw2
+        return "{}: SW1={:02X} SW2={:02X} COMMAND={} RESPONSE={}".format(
+            self.__class__.__name__, self.sw1, self.sw2, self.command, self.response
         )
 
 
@@ -84,7 +88,7 @@ class BaseCard:
     def dataexchange(self, data: bytes, response_length=64) -> bytes:
         return NotImplementedError
 
-    def apdu(self, data: bytes, response_length=64, raise_exceptions=True):
+    def apdu(self, cla, ins, p1, p2, data=b"", response_length=64, raise_exceptions=True):
         return NotImplementedError
 
     @property
