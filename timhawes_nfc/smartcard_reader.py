@@ -4,6 +4,9 @@
 
 import binascii
 
+from smartcard.CardType import AnyCardType
+from smartcard.CardRequest import CardRequest
+
 from . import card
 from . import fancy
 from . import desfire
@@ -11,7 +14,19 @@ from . import desfire
 
 class SmartcardMixin:
     @classmethod
-    def from_pyscard_connection(cls, connection, debug=False):
+    def from_smartcard(cls, debug=False):
+        cardtype = AnyCardType()
+        cardrequest = CardRequest(timeout=300, cardType=cardtype)
+        cardservice = cardrequest.waitforcard()
+        connection = cardservice.connection
+        connection.disconnect()
+        connection.connect()
+        card = cls.from_smartcard_connection(connection, debug=debug)
+        card._cardservice = cardservice
+        return card
+
+    @classmethod
+    def from_smartcard_connection(cls, connection, debug=False):
         card = cls()
         card.connection = connection
         card.debug = debug
