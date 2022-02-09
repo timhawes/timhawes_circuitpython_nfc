@@ -138,6 +138,7 @@ class PN532Mixin:
     def maybe_ntag21x(self) -> bool:
         return bool(
             len(self.data["uid"]) == 7
+            and self.data["uid"][0] == 0x04
             and self.data["atqa"] == 0x0044
             and self.data["sak"] == 0x00
         )
