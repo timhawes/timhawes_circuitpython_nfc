@@ -4,10 +4,27 @@
 
 import binascii
 
-from .card import nfc_tlv_parse
+from .card import nfc_tlv_parse, CardError
 
 
 class NtagMixin:
+    def fast_read(self, start, end):
+        length = (end + 1 - start) * 4
+        return self.communicatethru([0x3A, start, end], response_length=length)
+
+    def read_cnt(self, counter):
+        response = self.communicatethru([0x39, counter], response_length=3)
+        if response:
+            return int.from_bytes(response, "little")
+        return None
+
+    def read_sig(self):
+        return self.communicatethru([0x3C, 0x00], response_length=32)
+
+    def pwd_auth(self, pwd):
+        # pwd should be 4 bytes
+        return self.communicatethru(b"\x1B" + pwd, response_length=2)
+
     @property
     def ntag_version(self):
         return self.version
@@ -20,10 +37,11 @@ class NtagMixin:
     def ntag_signature(self):
         if "ntag_signature" in self.data:
             return self.data["ntag_signature"]
-        response = self.communicatethru([0x3C, 0x00], response_length=32)
-        if response:
-            self.data["ntag_signature"] = bytes(response)
+        try:
+            self.data["ntag_signature"] = self.read_sig()
             return self.data["ntag_signature"]
+        except CardError:
+            return None
 
     @property
     def ntag_data(self):
@@ -35,16 +53,22 @@ class NtagMixin:
             b"\x00\x04\x04\x02\x01\x00\x0F\x03": 0x2C,
             b"\x00\x04\x04\x02\x01\x00\x11\x03": 0x86,
             b"\x00\x04\x04\x02\x01\x00\x13\x03": 0xE6,
+            b"\x00\x04\x04\x04\x01\x00\x0F\x03": 0x2C,
+            b"\x00\x04\x04\x04\x01\x00\x11\x03": 0x86,
+            b"\x00\x04\x04\x04\x01\x00\x13\x03": 0xE6,
         }
-        max_block = version_map[self.ntag_version]
+        try:
+            max_block = version_map[self.ntag_version]
+        except KeyError:
+            return None
         read_blocks = 56
         data = b""
         for block_start in range(0, max_block, read_blocks):
             block_end = min(block_start + read_blocks, max_block)
-            response = self.communicatethru(
-                [0x3A, block_start, block_end],
-                response_length=((block_end - block_start) * 4) + 4,
-            )
+            try:
+                response = self.fast_read(block_start, block_end)
+            except CardError:
+                return None
             if response:
                 data = data + response
             else:
@@ -56,14 +80,21 @@ class NtagMixin:
     def ntag_counter(self):
         if "ntag_counter" in self.data:
             return self.data["ntag_counter"]
-        response = self.communicatethru([0x3A, 0, 0], response_length=4)
-        response = self.communicatethru([0x39, 0x02], response_length=3)
-        if response:
-            self.data["ntag_counter"] = int.from_bytes(response, "little")
-            return self.data["ntag_counter"]
+        try:
+            # read block zero to ensure that counter is incremented
+            # self.communicatethru([0x3A, 0, 0], response_length=4)
+            self.fast_read(0, 0)
+            count = self.read_cnt(2)
+            if count is not None:
+                self.data["ntag_counter"] = count
+                return count
+        except CardError:
+            return None
 
     @property
     def ntag_ndef(self):
+        if self.ntag_data is None:
+            return None
         cc = self.ntag_data[12:16]
         data = self.ntag_data[16:]
         if cc[0] == 0xE1:
