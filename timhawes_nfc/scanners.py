@@ -10,6 +10,7 @@ from .desfire import EV1Card
 from .pn532_reader import PN532Mixin
 
 # from .piv import PivMixin
+from .tests import multi_test
 
 
 class MyCard(PN532Mixin, EV1Card):
@@ -120,6 +121,9 @@ class NFCDesfireScanner(NFCBaseScanner):
             if callable(self.start_auth_callback):
                 # pylint: disable=not-callable
                 self.start_auth_callback()
+
+            multi_test(card)
+            return card
 
             card.dump()
 
