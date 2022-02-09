@@ -166,7 +166,9 @@ class BaseCard:
     def dataexchange(self, data: bytes, response_length=64) -> bytes:
         return NotImplementedError
 
-    def apdu(self, cla, ins, p1, p2, data=b"", response_length=64, raise_exceptions=True):
+    def apdu(
+        self, cla, ins, p1, p2, data=b"", response_length=64, raise_exceptions=True
+    ):
         return NotImplementedError
 
     @property
