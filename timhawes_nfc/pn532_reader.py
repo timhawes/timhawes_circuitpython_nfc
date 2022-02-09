@@ -68,6 +68,9 @@ class PN532Mixin:
     def pn532_inselect(self):
         return self.pn532_call_function(0x54, params=[1], response_length=1)
 
+    def pn532_indeselect(self):
+        return self.pn532_call_function(0x44, params=[1], response_length=1)
+
     def communicatethru(self, data, response_length=64):
         return self.pn532_call_function(
             0x42, params=list(data), response_length=response_length
