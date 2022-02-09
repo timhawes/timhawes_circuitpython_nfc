@@ -82,18 +82,20 @@ class DiversifiedAuthenticator:
             return False
 
         if card.uid[0] == 0x80:
+            uid = None
             for key_id, key_data in self.uid_query_keys:
-                # print("trying key {} for uid".format(key_id))
+                print("trying key {} for uid".format(key_id))
                 if card.ev1_authenticate_aes(key_id, key_data):
                     uid = card.real_uid
                     if uid:
                         break
-            if uid == 0x80:
+            if uid is None or uid[0] == 0x80:
                 print("unable to fetch real uid")
                 return False
             else:
-                # print("real uid is {}".format(binascii.hexlify(uid)))
-                pass
+                print("real uid is {}".format(binascii.hexlify(uid)))
+        else:
+            uid = card.uid
 
         diversification_input = uid + self.aid.to_bytes(3, "big")
 
