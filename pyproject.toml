@@ -1,0 +1,4 @@
+[tool.black]
+extend-exclude = '''
+^/timhawes_nfc/desfire_tests.py
+'''
