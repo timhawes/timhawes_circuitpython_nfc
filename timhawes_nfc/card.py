@@ -161,15 +161,15 @@ class BaseCard:
                 print()
 
     def communicatethru(self, data: bytes, response_length=64) -> bytes:
-        return NotImplementedError
+        raise NotImplementedError
 
     def dataexchange(self, data: bytes, response_length=64) -> bytes:
-        return NotImplementedError
+        raise NotImplementedError
 
     def apdu(
         self, cla, ins, p1, p2, data=b"", response_length=64, raise_exceptions=True
     ):
-        return NotImplementedError
+        raise NotImplementedError
 
     @property
     def has_random_uid(self) -> bool:
@@ -179,11 +179,11 @@ class BaseCard:
 
     @property
     def is_iso14443_3(self):
-        return NotImplementedError
+        raise NotImplementedError
 
     @property
     def is_iso14443_4(self):
-        return NotImplementedError
+        raise NotImplementedError
 
     @property
     def historical_bytes(self):
