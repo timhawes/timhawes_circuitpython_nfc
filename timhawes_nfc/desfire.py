@@ -611,7 +611,7 @@ class EV1Card(FancyCard):
             # (key id + key data + key version + crc)
             print("- changing current key")
             if is_aes_key:
-                if self.selected_application == 0:
+                if self.selected_application is None:
                     print("- is card aes key")
                     data = bytes([key_id | 0x80]) + key_data + bytes([key_version])
                 else:
@@ -630,7 +630,7 @@ class EV1Card(FancyCard):
             # changing a different key, use long format command
             print("- changing different key")
             if is_aes_key:
-                if self.selected_application == 0:
+                if self.selected_application is None:
                     print("- is card aes key")
                     data = (
                         bytes([key_id | 0x80])
