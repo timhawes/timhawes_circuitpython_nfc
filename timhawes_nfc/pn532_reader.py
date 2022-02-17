@@ -82,36 +82,37 @@ class PN532Mixin:
         )
 
     def apdu(
-        self, cla, ins, p1, p2, data=b"", response_length=None, raise_exceptions=True
+        self, cla, ins, p1, p2, data=b"", response_length=64, raise_exceptions=True
     ):
         if len(data) > 255:
             raise NotImplementedError("Cannot handle command data length >255 bytes")
         elif len(data) > 0:
             command = bytes([cla, ins, p1, p2, len(data)]) + data
-            # command = bytes(command) + bytes([len(data)]) + data
         else:
             command = bytes([cla, ins, p1, p2])
-            # command = bytes(command)
-        if response_length is None or response_length == 256:
-            command = command + b"\x00"
-        elif response_length > 256:
-            raise NotImplementedError("Cannot handle response length >256 bytes")
-        elif response_length > 0:
+
+        response_length = max(response_length, 1)
+        response_length = min(response_length, 250)
+        pn532_response_length = response_length + 1
+
+        if response_length > 0:
             command = command + bytes([response_length])
         # else: 0 encoded as absent field
+
         if self.debug:
             print("APDU-C {}".format(binascii.hexlify(bytes(command)).decode("ascii")))
-        response = self.dataexchange(command, response_length=200)
+        response = self.dataexchange(command, response_length=pn532_response_length)
         if response:
             output = response[0:-2]
             while response[-2] == 0x61:
+                # data is incomplete, ask for more
                 remaining_length = response[-1]
                 if remaining_length == 0:
                     remaining_length = 256
                 remaining_length = min(remaining_length, 250)
                 response = self.dataexchange(
                     [0x00, 0xC0, 0x00, 0x00, remaining_length],
-                    response_length=remaining_length + 2,
+                    response_length=remaining_length + 1,
                 )
                 output = output + response[0:-2]
             if response[-2] not in [0x90, 0x91]:
@@ -119,8 +120,8 @@ class PN532Mixin:
                     raise APDUError(
                         response[-2],
                         response[-1],
-                        command=bytes(command),
-                        response=bytes(response[:-2]),
+                        bytes(command),
+                        bytes(response[:-2]),
                     )
             return output, response[-2], response[-1]
         else:
