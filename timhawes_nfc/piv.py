@@ -11,7 +11,6 @@ from .iso import IsoMixin
 
 
 PIV_AID = b"\xA0\x00\x00\x03\x08\x00\x00\x10\x00"
-SELECT = b"\x00\xA4\x04\x00"
 GET_DATA = b"\x00\xCB\x3F\xFF"
 PIV_CHUID = b"\x5F\xC1\x02"  # Card Holder Unique Identifier
 CERTIFICATE_9A = b"\x5F\xC1\x05"  # X.509 Certificate for PIV Authentication
@@ -25,26 +24,22 @@ class PivMixin(IsoMixin):
         self.iso_select_df(PIV_AID)
 
     def piv_get_data(self, data_field):
-        apdu = (
-            GET_DATA + bytes([len(data_field) + 2, 0x5C, len(data_field)]) + data_field
-        )
-        response, sw1, sw2 = self.apdu(apdu, response_length=250)
+        response, sw1, sw2 = self.apdu(0x00, 0xCB, 0x3F, 0xFF, data_field)
         return response
 
     def piv_get_certificate(self, slot=0x9E):
         if slot == 0x9A:
-            data_tlv = CERTIFICATE_9A
+            data_object_identifier = CERTIFICATE_9A
         elif slot == 0x9C:
-            data_tlv = CERTIFICATE_9C
+            data_object_identifier = CERTIFICATE_9C
         elif slot == 0x9D:
-            data_tlv = CERTIFICATE_9D
+            data_object_identifier = CERTIFICATE_9D
         elif slot == 0x9E:
-            data_tlv = CERTIFICATE_9E
+            data_object_identifier = CERTIFICATE_9E
         else:
             raise ValueError("Unknown slot 0x{:02X}".format(slot))
         try:
-            self.piv_select()
-            return self.piv_get_data(data_tlv)
+            return self.piv_get_data(b"\x5C\x03" + data_object_identifier)
         except APDUError as e:
             if e.sw1 == 0x6A and e.sw2 == 0x80:
                 # Incorrect parameters in the command data field
@@ -55,10 +50,8 @@ class PivMixin(IsoMixin):
             raise e
 
     def piv_general_authenticate(self, algo, slot, data):
-        apdu = (
-            b"\x00\x87" + bytes([algo, slot, len(data)]) + bytes(data) + bytes([0x00])
-        )
-        return self.apdu(apdu)
+        response, sw1, sw2 = self.apdu(0x00, 0x87, algo, slot, data)
+        return response
 
     def piv_sign(self, nonce, algo=0x14, slot=0x9E):
         if algo not in [0x11, 0x14]:
@@ -73,11 +66,10 @@ class PivMixin(IsoMixin):
             if len(nonce) > 48:
                 raise ValueError("nonce must be <= 48 bytes for P-384")
 
-        self.iso_select_df(PIV_AID)
         challenge = [0x82, 0x00, 0x81, len(nonce)] + list(nonce)
         dynamic_auth_template = [0x7C, len(challenge)] + challenge
-        response, sw1, sw2 = self.piv_general_authenticate(
-            algo, slot, dynamic_auth_template
+        response = self.piv_general_authenticate(
+            algo, slot, bytes(dynamic_auth_template)
         )
 
         decoder = asn1.Decoder()
