@@ -4,8 +4,6 @@
 
 # PIV specifications: https://csrc.nist.gov/publications/detail/sp/800-73/4/final
 
-import asn1
-
 from .card import APDUError
 from .iso import IsoMixin
 
@@ -19,6 +17,20 @@ CERTIFICATE_9D = b"\x5F\xC1\x0B"  # X.509 Certificate for Key Management
 CERTIFICATE_9E = b"\x5F\xC1\x01"  # X.509 Certificate for Card Authentication
 
 
+def unwrap_tlv(data):
+    tag = data[0]
+    length = data[1]
+    if length < 128:
+        return data[2:2 + length]
+    elif length == 128:
+        raise ValueError
+    elif length == 255:
+        raise ValueError
+    else:
+        length_length = length & 127
+        length = int.from_bytes(data[2:2 + length_length], "big")
+        return data[2 + length_length:2 + length_length + length]
+
 class PivMixin(IsoMixin):
     def piv_select(self):
         self.iso_select_df(PIV_AID)
@@ -28,6 +40,7 @@ class PivMixin(IsoMixin):
         return response
 
     def piv_get_certificate(self, slot=0x9E):
+        """Retrieve a certificate from the card and return in DER format."""
         if slot == 0x9A:
             data_object_identifier = CERTIFICATE_9A
         elif slot == 0x9C:
@@ -39,7 +52,7 @@ class PivMixin(IsoMixin):
         else:
             raise ValueError("Unknown slot 0x{:02X}".format(slot))
         try:
-            return self.piv_get_data(b"\x5C\x03" + data_object_identifier)
+            return unwrap_tlv(unwrap_tlv(self.piv_get_data(b"\x5C\x03" + data_object_identifier)))
         except APDUError as e:
             if e.sw1 == 0x6A and e.sw2 == 0x80:
                 # Incorrect parameters in the command data field
@@ -54,6 +67,7 @@ class PivMixin(IsoMixin):
         return response
 
     def piv_sign(self, nonce, algo=0x14, slot=0x9E):
+        """Sign a message on the card and return the signature in DER format."""
         if algo not in [0x11, 0x14]:
             # 0x07 RSA 2048
             # 0x11 ECC P-256
@@ -71,23 +85,4 @@ class PivMixin(IsoMixin):
         response = self.piv_general_authenticate(
             algo, slot, bytes(dynamic_auth_template)
         )
-
-        decoder = asn1.Decoder()
-        decoder.start(response)
-        tag = decoder.peek()
-        if tag.nr == 28 and tag.typ == 32 and tag.cls == 64:
-            decoder.enter()
-            tag = decoder.peek()
-            if tag.nr == 2 and tag.typ == 0 and tag.cls == 128:
-                tag, value = decoder.read()
-                decoder = asn1.Decoder()
-                decoder.start(value)
-                decoder.enter()
-                tag1, value1 = decoder.read()  # r
-                tag2, value2 = decoder.read()  # s
-                if algo == 0x11:
-                    # P-256
-                    return value1.to_bytes(32, "big") + value2.to_bytes(32, "big")
-                elif algo == 0x14:
-                    # P-384
-                    return value1.to_bytes(48, "big") + value2.to_bytes(48, "big")
+        return unwrap_tlv(unwrap_tlv(response))
